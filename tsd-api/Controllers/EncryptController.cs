@@ -9,14 +9,14 @@ namespace tsd_api.Controllers
     [ApiController]
     public class EncryptController : ControllerBase
     {
-       
+
         [HttpGet]
         public IEnumerable<string> Get()
         {
             return new string[] { "value1", "value2" };
         }
 
-       
+
         [HttpPost]
         public IEnumerable<string> Post([FromBody] Body value)
         {
@@ -27,9 +27,19 @@ namespace tsd_api.Controllers
 
                 byte[] decrypted = Decrypt(bytesEncrypted, privateKey, false);
 
-               
+
             }
             return new string[] { GetSecretKey(), "value2" };
+        }
+
+        private static byte[] Decrypt(byte[] encrypted, RSAParameters privateKey, bool fOAEP)
+        {
+            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider())
+            {
+                rsa.ImportParameters(privateKey);
+
+                return rsa.Decrypt(encrypted, fOAEP);
+            }
         }
 
         private string GetSecretKey()
@@ -51,17 +61,8 @@ namespace tsd_api.Controllers
 
             return toReturn;
         }
-
-        private static byte[] Decrypt(byte[] encrypted, RSAParameters privateKey, bool fOAEP)
-        {
-            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider())
-            {
-                rsa.ImportParameters(privateKey);
-
-                return rsa.Decrypt(encrypted, fOAEP);
-            }
-        }
     }
+
 
     public class Body
     {
