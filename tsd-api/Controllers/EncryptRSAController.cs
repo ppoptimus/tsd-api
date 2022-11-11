@@ -85,6 +85,7 @@ cbKXmQKBgASYKW4lDtUtRQS73xilb04qjRgC1hmIjFG/KCSj/2hwqHr9JIw28C74
                 //we might want a string representation of our cypher text... base64 will do
                 var cypherText = Convert.ToBase64String(bytesCypherText);
 
+                
                 //first, get our bytes back from the base64 string ...
                 bytesCypherText = Convert.FromBase64String(cypherText);
 
