@@ -31,7 +31,8 @@ namespace tsd_api.Controllers
             var byteKey = Encoding.UTF8.GetBytes(secretKey);
             using (Aes myAes = Aes.Create())
             {
-                byte[] encrypted = EncryptStringToBytes_Aes(original, byteKey, myAes.IV);
+                //byte[] encrypted = EncryptStringToBytes_Aes(original, byteKey, myAes.IV);
+                byte[] encrypted = EncryptStringToBytes_Aes_Tsd(original, byteKey);
                 inputEncrypt = Convert.ToBase64String(encrypted);
             }
             #endregion----Encrypt AES
@@ -69,6 +70,7 @@ namespace tsd_api.Controllers
             {
                 aesAlg.Key = Key;
                 aesAlg.IV = IV;
+                aesAlg.Mode = CipherMode.CBC;
 
                 // Create an encryptor to perform the stream transform.
                 ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
@@ -92,24 +94,46 @@ namespace tsd_api.Controllers
             return encrypted;
         }
 
-        private string GetSecretKey()
+        public static byte[] EncryptStringToBytes_Aes_Tsd(string plainText, byte[] Key)
         {
-            string toReturn = string.Empty;
+            byte[] encrypted;
+            byte[] IV;
 
-            try
+            using (Aes aesAlg = Aes.Create())
             {
-                RNGCryptoServiceProvider rngCryptoServiceProvider = new RNGCryptoServiceProvider();
-                byte[] randomBytes = new byte[16];
-                rngCryptoServiceProvider.GetBytes(randomBytes);
-                toReturn = Convert.ToBase64String(randomBytes);
+                aesAlg.Key = Key;
 
-            }
-            catch (Exception ex)
-            {
-                throw ex;
+                aesAlg.GenerateIV();
+                IV = aesAlg.IV;
+
+                aesAlg.Mode = CipherMode.CBC;
+                // aesAlg.Padding = PaddingMode.PKCS7;
+
+                var encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+
+                // Create the streams used for encryption. 
+                using (var msEncrypt = new MemoryStream())
+                {
+                    using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    {
+                        using (var swEncrypt = new StreamWriter(csEncrypt))
+                        {
+                            //Write all data to the stream.
+                            swEncrypt.Write(plainText);
+                        }
+                        encrypted = msEncrypt.ToArray();
+                    }
+                }
             }
 
-            return toReturn;
+            //return encrypted;
+            var combinedIvCt = new byte[IV.Length + encrypted.Length];
+            Array.Copy(IV, 0, combinedIvCt, 0, IV.Length);
+            Array.Copy(encrypted, 0, combinedIvCt, IV.Length, encrypted.Length);
+
+            // Return the encrypted bytes from the memory stream. 
+            return combinedIvCt;
+
         }
 
         public static RSACryptoServiceProvider ImportPublicKey(string pem)
@@ -130,6 +154,26 @@ Q1Q6afHZsuV1twrOUSlxghNeI7nR9fZcY/akHLsFankCcohcwVt9xXIFRSYjD5Sm
             RSACryptoServiceProvider csp = new RSACryptoServiceProvider();// cspParams);
             csp.ImportParameters(rsaParams);
             return csp;
+        }
+
+        private string GetSecretKey()
+        {
+            string toReturn = string.Empty;
+
+            try
+            {
+                RNGCryptoServiceProvider rngCryptoServiceProvider = new RNGCryptoServiceProvider();
+                byte[] randomBytes = new byte[16];
+                rngCryptoServiceProvider.GetBytes(randomBytes);
+                toReturn = Convert.ToBase64String(randomBytes);
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return toReturn;
         }
 
     }

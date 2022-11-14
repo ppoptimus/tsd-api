@@ -5,6 +5,7 @@ using Org.BouncyCastle.Security;
 using System.Security.Cryptography;
 using Org.BouncyCastle.OpenSsl;
 using System.Text;
+using System.Text.Json;
 
 namespace tsd_api.Controllers
 {
@@ -12,24 +13,25 @@ namespace tsd_api.Controllers
     [ApiController]
     public class DecryptAllController : ControllerBase
     {
-        [HttpGet]
-        public IEnumerable<string> Get()
-        {
-            return new string[] { "value1", "value2" };
-        }
+        //[HttpGet]
+        //public IEnumerable<string> Get()
+        //{
+        //    return new string[] { "value1", "value2" };
+        //}
 
         
         [HttpPost]
-        public void Post([FromBody] InputEncrypted body)
+        public ActionResult Post([FromBody] InputEncrypted body)
         {
             var secret = DecryptSecret(body.Secret);
             var byteKey = Encoding.UTF8.GetBytes(secret);
             var byteEncrypt = Convert.FromBase64String(body.Input);
 
          
-            string roundtrip = DecryptStringFromBytes_AesMe(byteEncrypt, byteKey).ToString();
-         
             var test = DecryptStringFromBytes_AesTsd(byteEncrypt, byteKey);
+            OutputDecrypted res = JsonSerializer.Deserialize<OutputDecrypted>(test);
+            return Ok(res);
+
         }
 
         public static string DecryptSecret(string encryptSecret)
@@ -105,7 +107,7 @@ cbKXmQKBgASYKW4lDtUtRQS73xilb04qjRgC1hmIjFG/KCSj/2hwqHr9JIw28C74
                 aesAlg.Key = Key;
                 aesAlg.IV = IV;
                 aesAlg.Mode = CipherMode.CBC;
-                aesAlg.Padding = PaddingMode.None;
+                aesAlg.Padding = PaddingMode.PKCS7;
 
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
@@ -141,7 +143,7 @@ cbKXmQKBgASYKW4lDtUtRQS73xilb04qjRgC1hmIjFG/KCSj/2hwqHr9JIw28C74
                 aesAlg.IV = IV;
 
                 aesAlg.Mode = CipherMode.CBC;
-                aesAlg.Padding = PaddingMode.None;
+                aesAlg.Padding = PaddingMode.PKCS7;
 
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
@@ -167,5 +169,11 @@ cbKXmQKBgASYKW4lDtUtRQS73xilb04qjRgC1hmIjFG/KCSj/2hwqHr9JIw28C74
     {
         public string Input { get; set; }
         public string Secret { get; set; }
+    }
+
+    public class OutputDecrypted
+    {
+        public string username { get; set; }
+        public string password { get; set; }
     }
 }
