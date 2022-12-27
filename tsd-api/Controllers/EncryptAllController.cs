@@ -21,7 +21,7 @@ namespace tsd_api.Controllers
         [HttpPost]
         public ActionResult Post([FromBody] string original)
         {
-            original = @"{""username"": ""TSD"",""password"": ""Tsd@12345#.""}";
+            //original = @"{""username"": ""TSD"",""password"": ""Tsd@12345#.""}";
             String inputEncrypt = String.Empty;
             String secretEncrypt = String.Empty;
 

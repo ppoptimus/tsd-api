@@ -23,14 +23,36 @@ namespace tsd_api.Controllers
         [HttpPost]
         public ActionResult Post([FromBody] InputEncrypted body)
         {
-            var secret = DecryptSecret(body.Secret);
+            var secret = DecryptSecret(body.Secret); Console.WriteLine("secret = ",secret);
             var byteKey = Encoding.UTF8.GetBytes(secret);
             var byteEncrypt = Convert.FromBase64String(body.Input);
 
-         
-            var test = DecryptStringFromBytes_AesTsd(byteEncrypt, byteKey);
-            OutputDecrypted res = JsonSerializer.Deserialize<OutputDecrypted>(test);
-            return Ok(res);
+
+                var decryptAes = DecryptStringFromBytes_AesTsd(byteEncrypt, byteKey);Console.WriteLine("decrypted Aes = ", decryptAes);
+            try
+            {
+
+
+                OutputDecrypted res = JsonSerializer.Deserialize<OutputDecrypted>(decryptAes);
+                var userName = res.username;
+                var password = res.password;
+
+                var response = new { responseCode = "000", responseStatus = "S", responseMessage = "Success" };
+                if (userName == "TSD" && password == "Tsd@12345#.")
+                {
+
+                    return Ok(response);
+                }
+                else
+                {
+                    return Ok(new { responseCode = "111", responseStatus = "N", responseMessage = "invalid username or password" });
+                }
+            }
+            catch (Exception e)
+            {
+
+                return Ok(decryptAes);
+            }
 
         }
 
@@ -45,10 +67,10 @@ namespace tsd_api.Controllers
                 var byteDecryptedSecret = RSAprivateKey.Decrypt(byteEncrypt, false);
                 secret = System.Text.Encoding.UTF8.GetString(byteDecryptedSecret);
             }
-            catch (Exception)
+            catch (Exception e)
             {
 
-                throw;
+                return e.Message;
             }
             return secret;
         }
@@ -109,31 +131,40 @@ namespace tsd_api.Controllers
 
             using (Aes aesAlg = Aes.Create())
             {
-                aesAlg.Key = Key;
-
-                byte[] IV = new byte[aesAlg.BlockSize / 8];
-                byte[] cipherText = new byte[cipherTextCombined.Length - IV.Length];
-
-                Array.Copy(cipherTextCombined, IV, IV.Length);
-                Array.Copy(cipherTextCombined, IV.Length, cipherText, 0, cipherText.Length);
-
-                aesAlg.IV = IV;
-
-                aesAlg.Mode = CipherMode.CBC;
-                aesAlg.Padding = PaddingMode.PKCS7;
-
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
-
-                using (var msDecrypt = new MemoryStream(cipherText))
+                try
                 {
-                    using (var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                    aesAlg.Key = Key;
+
+                    byte[] IV = new byte[aesAlg.BlockSize / 8];
+                    byte[] cipherText = new byte[cipherTextCombined.Length - IV.Length];
+
+                    Array.Copy(cipherTextCombined, IV, IV.Length);
+                    Array.Copy(cipherTextCombined, IV.Length, cipherText, 0, cipherText.Length);
+
+                    aesAlg.IV = IV;
+
+                    aesAlg.Mode = CipherMode.CBC;
+                    aesAlg.Padding = PaddingMode.PKCS7;
+
+                    ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+
+                    using (var msDecrypt = new MemoryStream(cipherText))
                     {
-                        using (var srDecrypt = new StreamReader(csDecrypt))
+                        using (var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                         {
-                            plaintext = srDecrypt.ReadToEnd();
+                            using (var srDecrypt = new StreamReader(csDecrypt))
+                            {
+                                plaintext = srDecrypt.ReadToEnd();
+                            }
                         }
                     }
                 }
+                catch (Exception e)
+                {
+
+                    return e.Message;
+                }
+                
 
             }
 
